@@ -29,6 +29,7 @@ class Reporter:
     def running_balance(self, new_rates=None, props=None):
         if not props:
             props = []
+
         # make sure we show the data without props
         props = [Prop([], name="Default")] + props
             
