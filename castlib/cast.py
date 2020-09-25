@@ -100,7 +100,7 @@ class Cast:
         events = self.events_by_day()
         return {date: [event.amount for event in events[date]] for date in events}
     
-    def running_balance(self, split=False):
+    def running_balance(self, split=False, change_only=False):
         transactions = self.transactions_by_day()
         dates = sorted([date for date in transactions])
         
@@ -111,9 +111,14 @@ class Cast:
         
         while current_date <= self.end:
             if current_date in dates:
-                last_balance += sum(transactions[current_date])
+                if change_only:
+                    last_balance = sum(transactions[current_date])
+                else:
+                    last_balance += sum(transactions[current_date])
+            elif change_only:
+                last_balance = 0
                 
-            if self.apr:
+            if self.apr and not change_only:
                 rate =  1 + ((self.apr/100) / 365)
                 if self.min_cash:
                     if last_balance > self.min_cash:
@@ -132,22 +137,27 @@ class Cast:
     def min_n_balances(self, n):
         return sorted(self.running_balance(split=True)[1])[:n]
     
+
+    def earliest_day(self, days):
+        if not days:
+            return datetime.datetime(1970, 1, 1).date()
+        
+        return days[0]
+        
+    
     def first_day_over(self, n):
         balances = self.running_balance()
         days_over = [day for day in balances if balances[day] >= n]
-        if not days_over:
-            return datetime.datetime(1970, 1, 1).date()
-        return days_over[0]
+        
+        return self.earliest_day(days_over)
+        
     
     def first_day_under(self, n):
         balances = self.running_balance()
-        days_over = [day for day in balances if balances[day] <= n]
+        days_under = [day for day in balances if balances[day] <= n]
         
-        if not days_over:
-            return datetime.datetime(1970, 1, 1).date()
+        return self.earliest_day(days_under)
         
-        return days_over[0]
-    
     # SAVE AND LOAD
     def __dict__(self):
         return {
