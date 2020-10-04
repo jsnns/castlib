@@ -56,6 +56,11 @@ class Cast:
         self.end = (self.start + relativedelta(days=days, weeks=weeks, months=months, years=years))
         return self
     
+    def trim(self):
+        self.events = [event for event in self.events if event.date < self.end and event.date > self.start]
+        return self
+            
+    
     # MAIN METHODS
     def add_event(self, event):
         if type(event) == list:

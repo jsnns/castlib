@@ -19,6 +19,9 @@ class Event:
     def __str__(self):
         return f'{self.name} for {self.amount} on {self.date}'
     
+    def __repr__(self):
+        return str(self)
+    
     def __dict__(self):
         return {
             "name": self.name,
@@ -53,6 +56,10 @@ class Event:
     @property
     def weekly(self):
         return self.get_recurring(delta=relativedelta(weeks=1))
+    
+    @property
+    def yearly(self):
+        return self.get_recurring(delta=relativedelta(years=1))
     
     @classmethod
     def fromevent(self, event):

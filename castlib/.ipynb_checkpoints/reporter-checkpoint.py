@@ -66,8 +66,17 @@ class Reporter:
     
     def tx_pie(self):
         fig = self.figure()
+        events = dict()
+        total = 0
+
         negative_events = sorted([e for e in self.cast.events if e.amount < 0],key=lambda e: e.amount)
-        plt.pie([e.amount * -1 for e in negative_events], labels=[e.name for e in negative_events])
+        for event in negative_events:
+            if event.name not in events:
+                events[event.name] = 0
+            events[event.name] += event.amount
+            total += event.amount
+            
+        plt.pie([(abs(events[event]/total)) for event in events], labels=[event for event in events])
         
     def days_till_broke(self, props):
         if not props:
