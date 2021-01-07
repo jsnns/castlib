@@ -47,7 +47,7 @@ class Event:
         last.date = last.date.replace(day=1)
         middle.date = middle.date.replace(day=15)
             
-        return self.get_recurring(delta=relativedelta(months=1, days=-1)) + self.get_recurring(delta=relativedelta(months=1))
+        return last.get_recurring(delta=relativedelta(months=1, days=-1)) + middle.get_recurring(delta=relativedelta(months=1))
 
     @property
     def monthly(self):

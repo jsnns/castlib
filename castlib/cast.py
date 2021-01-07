@@ -150,11 +150,16 @@ class Cast:
         return days[0]
         
     
-    def first_day_over(self, n):
+    def first_day_over(self, n, return_balance=False):
         balances = self.running_balance()
         days_over = [day for day in balances if balances[day] >= n]
         
-        return self.earliest_day(days_over)
+        first_day_over = self.earliest_day(days_over)
+        
+        if return_balance and first_day_over:
+            return self.earliest_day(days_over), self.running_balance()[first_day_over]
+        
+        return first_day_over
         
     
     def first_day_under(self, n):
@@ -184,7 +189,15 @@ class Cast:
     def fromfile(self, filename):
         with open(filename) as file:
             data = json.load(file)
-            new_cast = Cast(balance=data["balance"], apr=data["apr"])
+            
+            start = datetime.datetime.strptime(data["start"], "%Y-%m-%d").date()
+            end = datetime.datetime.strptime(data["end"], "%Y-%m-%d").date()
+
+            new_cast = Cast(balance=data["balance"], start=start)
+            new_cast.end = end
+            
+            if "apr" in data:
+                new_cast.at_apr(data["apr"])
             
             events = [Event.fromdict(e) for e in data["events"]]
             new_cast.add_event(events)

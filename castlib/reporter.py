@@ -1,5 +1,6 @@
 from castlib.cast import Cast
 from castlib.prop import Prop
+from castlib.util import format_currency, format_percent, format_number
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -29,9 +30,12 @@ class Reporter:
     def figure(self):
         return plt.subplots(figsize=self.size, dpi=self._dpi)
         
-    def running_balance(self, new_rates=None, props=None):
+    def running_balance(self, new_rates=None, props=None, mark_today=False, title="Running Balance", annotate=None):
         if not props:
             props = []
+            
+        if not annotate:
+            annotate = []
 
         # make sure we show the data without props
         props = [Prop([], name="Default")] + props
@@ -46,6 +50,21 @@ class Reporter:
             dates, balances = self.cast.running_balance(split=True)
             date_times = [time.mktime(d.timetuple()) for d in dates]
             plt.plot(date_times, balances, label=f'{prop.name}')
+            
+            if mark_today:
+                annotate.append(date.today())
+
+            if annotate:
+                for a in annotate:
+                    running_balance = self.cast.running_balance()
+                    today = time.mktime(a.timetuple())
+                    balance = running_balance[a]
+                    plt.annotate(format_currency(balance), # this is the text
+                                 (today,balance), # this is the point to label
+                                 textcoords="offset points", # how to position the text
+                                 xytext=(0,10), # distance from text to points (x,y)
+                                 ha='center') # horizontal alignment can be left, right or center
+                    plt.scatter(today, balance, s=20)
 
             if new_rates:
                 for new_rate in new_rates:
@@ -61,6 +80,7 @@ class Reporter:
         
         cut_out = math.floor(len(date_times)/20)
         plt.xticks(date_times[::cut_out], labels=dates[::cut_out], rotation=30);
+        plt.title(title)
         plt.legend()
         return self
     
@@ -131,3 +151,52 @@ class Reporter:
             print(included_balances)
             
         return moving_average
+    
+    
+    def milestones(self, filter_return=True):
+        # if networth is under 1mm milestones are the following:
+        # 10k
+        # 20k
+        # 50k
+        # 80k
+        # 100k
+        # 150k
+        # 250k
+        # 300k
+        # 400k
+        # 500k
+        # 750k
+        # 1mm
+        
+        milestones = [10, 20, 50, 80, 100, 150, 250, 300, 400, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 10000] # milestones in thousands
+        data = []
+        
+        for milestone in milestones:
+            milestone *= 1000
+            entry = {
+                "amount": format_currency(milestone)
+            }
+            if milestone <= self.cast.balance:
+                entry["is_passed"] = True
+                entry["date"] = None
+            
+            else:
+                entry["is_passed"] = False
+                d, balance = self.cast.first_day_over(milestone, return_balance=True)
+                entry["date"] = d if d > d.today() else None
+                entry["balance"] = format_currency(balance)
+                # time until met
+                years = ((d - d.today()).days)/365
+                entry["years_until"] = format_number(years)
+                
+                if years < 1:
+                    entry["years_until"] = format_percent(years)
+                
+            data.append(entry)
+            
+        df = pd.DataFrame.from_dict(data)
+        
+        if filter_return:
+            df = df[(df["date"].notnull()) | (df["is_passed"])]
+            
+        return df
